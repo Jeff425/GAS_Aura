@@ -6,7 +6,10 @@
 
 ACharacterBase::ACharacterBase()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	this->PrimaryActorTick.bCanEverTick = false;
+	this->Weapon = CreateDefaultSubobject<USkeletalMeshComponent>("Weapon");
+	this->Weapon->SetupAttachment(GetMesh(), "WeaponHandSocket");
+	this->Weapon->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 void ACharacterBase::BeginPlay()
