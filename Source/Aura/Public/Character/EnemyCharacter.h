@@ -17,7 +17,12 @@ class AURA_API AEnemyCharacter : public ACharacterBase, public IIHighlightable
 	
 	// Lesson learned, when creating interfaces don't add the I myself
 
+protected:
+	virtual void BeginPlay() override;
+
 public:
+	AEnemyCharacter();
+
 	virtual void Highlight() override;
 	virtual void UnHighlight() override;
 };
