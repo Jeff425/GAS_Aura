@@ -5,6 +5,10 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Player/AuraPlayerState.h"
 #include "AbilitySystemComponent.h"
+#include "Player/AuraController.h"
+#include "UI/Controller/BaseWidgetController.h"
+#include "UI/HUD/AuraHUD.h"
+
 
 AAuraCharacter::AAuraCharacter()
 {
@@ -33,9 +37,21 @@ void AAuraCharacter::OnRep_PlayerState()
 
 void AAuraCharacter::InitAbilityActorInfo()
 {
+	// Player State exists for all characters on all clients
 	AAuraPlayerState* auraPlayerState = this->GetPlayerState<AAuraPlayerState>();
 	check(auraPlayerState);
 	auraPlayerState->GetAbilitySystemComponent()->InitAbilityActorInfo(auraPlayerState, this);
 	this->AbilitySystemComponent = auraPlayerState->GetAbilitySystemComponent();
 	this->AttributeSet = auraPlayerState->AttributeSet;
+
+	// Controller only exists for owning clients
+	if (AAuraController* auraController = Cast<AAuraController>(this->GetController()))
+	{
+		// Assert check might make more sense, since we got the controller for aura earlier
+		if (AAuraHUD* auraHUD = Cast<AAuraHUD>(auraController->GetHUD()))
+		{
+			auraHUD->InitOverlay(FWidgetControllerParams(auraController, auraPlayerState, this->AbilitySystemComponent, this->AttributeSet));
+		}
+	}
+
 }
