@@ -12,7 +12,7 @@
 void AEnemyCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	this->AbilitySystemComponent->InitAbilityActorInfo(this, this);
+	this->InitAbilityActorInfo();
 }
 
 AEnemyCharacter::AEnemyCharacter()
@@ -41,4 +41,11 @@ void AEnemyCharacter::UnHighlight()
 	if (this->Weapon) {
 		this->Weapon->SetRenderCustomDepth(false);
 	}
+}
+
+void AEnemyCharacter::InitAbilityActorInfo()
+{
+	this->AbilitySystemComponent->InitAbilityActorInfo(this, this);
+	// Both this and Aura character are calling this. Feels like there's a better way...
+	Cast<UAbilitySystemComponentBase>(this->AbilitySystemComponent)->AbilityActorInfoSet();
 }

@@ -3,6 +3,7 @@
 
 #include "UI/Controller/OverlayWidgetController.h"
 #include "AbilitySystem/AuraAttributeSet.h"
+#include <AbilitySystem/AbilitySystemComponentBase.h>
 
 void UOverlayWidgetController::BroadcastInitialValues()
 {
@@ -21,6 +22,22 @@ void UOverlayWidgetController::BindCallbacksToDependencies()
 	this->AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(auraAttributeSet->GetMaxHealthAttribute()).AddUObject(this, &UOverlayWidgetController::MaxHealthChanged);
 	this->AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(auraAttributeSet->GetManaAttribute()).AddUObject(this, &UOverlayWidgetController::ManaChanged);
 	this->AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(auraAttributeSet->GetMaxManaAttribute()).AddUObject(this, &UOverlayWidgetController::MaxManaChanged);
+
+	Cast<UAbilitySystemComponentBase>(this->AbilitySystemComponent)->EffectAssetTags.AddLambda(
+		[this](const FGameplayTagContainer& AssetTags)
+		{
+			for (const FGameplayTag& tag : AssetTags)
+			{
+				// X.Y.Z can match X.Y but X.Y does not match X.Y.Z
+				// In this case Message.HealthPotion would match Message
+				if (tag.MatchesTag(FGameplayTag::RequestGameplayTag("Message")))
+				{
+					FUIWidgetRow* row = this->GetDataTableRowByTag<FUIWidgetRow>(this->MessageWidgetDataTable, tag);
+					this->OnMessageWidgetRow.Broadcast(*row);
+				}
+			}
+		}
+	);
 }
 
 void UOverlayWidgetController::HealthChanged(const FOnAttributeChangeData& Data) const

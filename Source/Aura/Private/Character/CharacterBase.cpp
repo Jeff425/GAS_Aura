@@ -23,3 +23,5 @@ UAbilitySystemComponent* ACharacterBase::GetAbilitySystemComponent() const
 	return this->AbilitySystemComponent;
 }
 
+void ACharacterBase::InitAbilityActorInfo() {}
+

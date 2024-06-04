@@ -8,6 +8,7 @@
 #include "Player/AuraController.h"
 #include "UI/Controller/BaseWidgetController.h"
 #include "UI/HUD/AuraHUD.h"
+#include <AbilitySystem/AbilitySystemComponentBase.h>
 
 
 AAuraCharacter::AAuraCharacter()
@@ -41,6 +42,8 @@ void AAuraCharacter::InitAbilityActorInfo()
 	AAuraPlayerState* auraPlayerState = this->GetPlayerState<AAuraPlayerState>();
 	check(auraPlayerState);
 	auraPlayerState->GetAbilitySystemComponent()->InitAbilityActorInfo(auraPlayerState, this);
+	// Both this and Enemy character are calling this. Feels like there's a better way...
+	Cast<UAbilitySystemComponentBase>(auraPlayerState->GetAbilitySystemComponent())->AbilityActorInfoSet();
 	this->AbilitySystemComponent = auraPlayerState->GetAbilitySystemComponent();
 	this->AttributeSet = auraPlayerState->AttributeSet;
 
