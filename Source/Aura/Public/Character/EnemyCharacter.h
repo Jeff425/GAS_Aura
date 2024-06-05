@@ -27,4 +27,10 @@ public:
 	virtual void UnHighlight() override;
 
 	virtual void InitAbilityActorInfo() override;
+	
+	// Do not need to replicate as only the server will use the value
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character Class Defaults")
+	int32 Level = 1;
+
+	virtual int32 GetLevel() override;
 };

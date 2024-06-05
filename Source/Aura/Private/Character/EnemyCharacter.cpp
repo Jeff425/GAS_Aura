@@ -49,3 +49,8 @@ void AEnemyCharacter::InitAbilityActorInfo()
 	// Both this and Aura character are calling this. Feels like there's a better way...
 	Cast<UAbilitySystemComponentBase>(this->AbilitySystemComponent)->AbilityActorInfoSet();
 }
+
+int32 AEnemyCharacter::GetLevel()
+{
+	return this->Level;
+}

@@ -2,6 +2,7 @@
 
 
 #include "Character/CharacterBase.h"
+#include "AbilitySystemComponent.h"
 
 
 ACharacterBase::ACharacterBase()
@@ -24,4 +25,22 @@ UAbilitySystemComponent* ACharacterBase::GetAbilitySystemComponent() const
 }
 
 void ACharacterBase::InitAbilityActorInfo() {}
+
+void ACharacterBase::InitializeDefaultAttributes() const
+{
+	this->ApplyEffectToSelf(this->DefaultPrimaryAttributes, 1.0);
+	this->ApplyEffectToSelf(this->DefaultSecondaryAttributes, 1.0);
+	this->ApplyEffectToSelf(this->DefaultVitalAttributes, 1.0);
+}
+
+void ACharacterBase::ApplyEffectToSelf(TSubclassOf<UGameplayEffect> GameplayEffectClass, float Level) const
+{
+	check(IsValid(this->GetAbilitySystemComponent()));
+	check(GameplayEffectClass);
+	FGameplayEffectContextHandle contextHandle = this->GetAbilitySystemComponent()->MakeEffectContext();
+	contextHandle.AddSourceObject(this);
+	FGameplayEffectSpecHandle specHandle = this->GetAbilitySystemComponent()->MakeOutgoingSpec(GameplayEffectClass, Level, contextHandle);
+	// Applys effect spec to target, which is itself LOL
+	this->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToTarget(*specHandle.Data.Get(), this->GetAbilitySystemComponent());
+}
 

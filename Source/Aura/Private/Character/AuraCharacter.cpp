@@ -56,5 +56,12 @@ void AAuraCharacter::InitAbilityActorInfo()
 			auraHUD->InitOverlay(FWidgetControllerParams(auraController, auraPlayerState, this->AbilitySystemComponent, this->AttributeSet));
 		}
 	}
+	this->InitializeDefaultAttributes();
+}
 
+int32 AAuraCharacter::GetLevel()
+{
+	AAuraPlayerState* auraPlayerState = this->GetPlayerState<AAuraPlayerState>();
+	check(auraPlayerState);
+	return auraPlayerState->Level;
 }
