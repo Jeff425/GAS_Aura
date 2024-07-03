@@ -13,6 +13,8 @@
 	GAMEPLAYATTRIBUTE_VALUE_SETTER(PropertyName) \
 	GAMEPLAYATTRIBUTE_VALUE_INITTER(PropertyName)
 
+DECLARE_DELEGATE_RetVal(FGameplayAttribute, FAttributeSignature);
+
 USTRUCT()
 struct FEffectProperties
 {
@@ -65,6 +67,8 @@ public:
 
 	FEffectProperties BuildEffectProperties(const FGameplayEffectModCallbackData& Data) const;
 	
+	TMap<FGameplayTag, FAttributeSignature> TagsToAttributes;
+
 	// Add Replicated for the stat to be replicated. Add ReplicatedUsing for a callback function to trigger
 	// There must be a function in order to call the macro GAMEPLAYATTRIBUTE_REPNOTIFY
 	// VITALS

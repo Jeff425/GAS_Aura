@@ -42,6 +42,7 @@ class AURA_API UBaseWidgetController : public UObject
 	GENERATED_BODY()
 	
 public:
+	UFUNCTION(BlueprintCallable)
 	virtual void BroadcastInitialValues() {};
 	virtual void BindCallbacksToDependencies() {};
 

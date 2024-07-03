@@ -6,10 +6,32 @@
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/Character.h"
 #include <AbilitySystemBlueprintLibrary.h>
+#include <AuraGameplayTags.h>
+
+// Macro to save on some boilerplate and not have to use a function pointer map
+#define BIND_ATTRIBUTE_TO_MAP(primary, secondary) \
+	FAttributeSignature secondary ## Delegate; \
+	secondary ## Delegate.BindStatic(Get ## secondary ## Attribute); \
+	TagsToAttributes.Add(GameplayTags.Attributes_ ## primary ## _ ## secondary, secondary ## Delegate);
 
 UAuraAttributeSet::UAuraAttributeSet()
 {
+	const FAuraGameplayTags& GameplayTags = FAuraGameplayTags::Get();
 
+	BIND_ATTRIBUTE_TO_MAP(Primary, Strength);
+	BIND_ATTRIBUTE_TO_MAP(Primary, Intelligence);
+	BIND_ATTRIBUTE_TO_MAP(Primary, Resilience);
+	BIND_ATTRIBUTE_TO_MAP(Primary, Vigor);
+
+	BIND_ATTRIBUTE_TO_MAP(Secondary, Armor);
+	BIND_ATTRIBUTE_TO_MAP(Secondary, ArmorPenetration);
+	BIND_ATTRIBUTE_TO_MAP(Secondary, Crit);
+	BIND_ATTRIBUTE_TO_MAP(Secondary, CritDamage);
+	BIND_ATTRIBUTE_TO_MAP(Secondary, CritResistance);
+	BIND_ATTRIBUTE_TO_MAP(Secondary, HealthRegen);
+	BIND_ATTRIBUTE_TO_MAP(Secondary, ManaRegen);
+	BIND_ATTRIBUTE_TO_MAP(Secondary, MaxMana);
+	BIND_ATTRIBUTE_TO_MAP(Secondary, MaxHealth);
 }
 
 void UAuraAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
