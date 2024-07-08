@@ -2,7 +2,7 @@
 
 
 #include "Character/CharacterBase.h"
-#include "AbilitySystemComponent.h"
+#include <AbilitySystem/AbilitySystemComponentBase.h>
 
 
 ACharacterBase::ACharacterBase()
@@ -24,6 +24,11 @@ UAbilitySystemComponent* ACharacterBase::GetAbilitySystemComponent() const
 	return this->AbilitySystemComponent;
 }
 
+FVector ACharacterBase::GetCombatSocketLocation()
+{
+	return this->Weapon->GetSocketLocation(WeaponTipSocketName);
+}
+
 void ACharacterBase::InitAbilityActorInfo() {}
 
 void ACharacterBase::InitializeDefaultAttributes() const
@@ -42,5 +47,17 @@ void ACharacterBase::ApplyEffectToSelf(TSubclassOf<UGameplayEffect> GameplayEffe
 	FGameplayEffectSpecHandle specHandle = this->GetAbilitySystemComponent()->MakeOutgoingSpec(GameplayEffectClass, Level, contextHandle);
 	// Applys effect spec to target, which is itself LOL
 	this->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToTarget(*specHandle.Data.Get(), this->GetAbilitySystemComponent());
+}
+
+void ACharacterBase::AddCharacterAbilities()
+{
+	// Server only
+	if (!this->HasAuthority())
+	{
+		return;
+	}
+
+	UAbilitySystemComponentBase* auraASC = CastChecked<UAbilitySystemComponentBase>(this->AbilitySystemComponent);
+	auraASC->AddCharacterAbilities(this->StartupAbilities);
 }
 

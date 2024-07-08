@@ -3,18 +3,41 @@
 
 #include "Player/AuraController.h"
 #include "EnhancedInputSubsystems.h"
-#include "EnhancedInputComponent.h"
 #include "Interaction/IHighlightable.h"
+#include <Input/AuraInputComponent.h>
+#include <AbilitySystemBlueprintLibrary.h>
+#include "AbilitySystem/AbilitySystemComponentBase.h"
+#include "Components/SplineComponent.h"
+#include <AuraGameplayTags.h>
+#include <NavigationSystem.h>
+#include "NavigationPath.h"
 
 AAuraController::AAuraController()
 {
 	this->bReplicates = true;
+	this->Spline = CreateDefaultSubobject<USplineComponent>("Spline");
 }
 
 void AAuraController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
 	this->CursorTrace();
+
+	if (this->bAutoRunning)
+	{
+		if (APawn* controlledPawn = this->GetPawn())
+		{
+			const FVector locationOnSpline = this->Spline->FindLocationClosestToWorldLocation(controlledPawn->GetActorLocation(), ESplineCoordinateSpace::World);
+			const FVector direction = this->Spline->FindDirectionClosestToWorldLocation(locationOnSpline, ESplineCoordinateSpace::World);
+			controlledPawn->AddMovementInput(direction);
+
+			const float distanceToDestination = (locationOnSpline - this->CachedDestination).Length();
+			if (distanceToDestination <= this->AutoRunAcceptanceRadius)
+			{
+				this->bAutoRunning = false;
+			}
+		}
+	}
 }
 
 void AAuraController::BeginPlay()
@@ -41,8 +64,9 @@ void AAuraController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
 
-	UEnhancedInputComponent* inputComponent = CastChecked<UEnhancedInputComponent>(this->InputComponent);
+	UAuraInputComponent* inputComponent = CastChecked<UAuraInputComponent>(this->InputComponent);
 	inputComponent->BindAction(this->MoveAction, ETriggerEvent::Triggered, this, &AAuraController::Move);
+	inputComponent->BindAbilityActions(this->InputConfig, this, &ThisClass::AbilityInputTagPressed, &ThisClass::AbilityInputTagReleased, &ThisClass::AbilityInputTagHeld);
 }
 
 void AAuraController::Move(const FInputActionValue& InputActionValue)
@@ -64,12 +88,11 @@ void AAuraController::Move(const FInputActionValue& InputActionValue)
 
 void AAuraController::CursorTrace()
 {
-	FHitResult cursorHit;
-	this->GetHitResultUnderCursor(ECC_Visibility, false, cursorHit);
-	if (!cursorHit.bBlockingHit) return;
+	this->GetHitResultUnderCursor(ECC_Visibility, false, this->CursorHit);
+	if (!this->CursorHit.bBlockingHit) return;
 
 	this->LastActor = this->ThisActor;
-	this->ThisActor = cursorHit.GetActor();
+	this->ThisActor = this->CursorHit.GetActor();
 
 	// Check for highlight
 	if (this->ThisActor && this->ThisActor != this->LastActor)
@@ -82,4 +105,78 @@ void AAuraController::CursorTrace()
 	{
 		this->LastActor->UnHighlight();
 	}
+}
+
+void AAuraController::AbilityInputTagPressed(FGameplayTag InputTag)
+{
+	if (InputTag.MatchesTagExact(FAuraGameplayTags::Get().InputTag_LMB))
+	{
+		this->bTargeting = this->ThisActor ? true : false;
+		this->bAutoRunning = false;
+	}
+}
+
+void AAuraController::AbilityInputTagReleased(FGameplayTag InputTag)
+{
+	if (this->bTargeting || !InputTag.MatchesTagExact(FAuraGameplayTags::Get().InputTag_LMB))
+	{
+		if (this->GetASC())
+		{
+			this->GetASC()->AbilityInputTagReleased(InputTag);
+		}
+	}
+	else
+	{
+		APawn* controlledPawn = this->GetPawn();
+		if (this->FollowTime <= this->ShortPressThreshold && controlledPawn)
+		{
+			if (UNavigationPath* navPath = UNavigationSystemV1::FindPathToLocationSynchronously(this, controlledPawn->GetActorLocation(), this->CachedDestination))
+			{
+				this->Spline->ClearSplinePoints();
+				for (const FVector& pointLoc : navPath->PathPoints)
+				{
+					this->Spline->AddSplinePoint(pointLoc, ESplineCoordinateSpace::World);
+				}
+				this->bAutoRunning = true;
+				// Makes sure destination is a movable locaiton
+				this->CachedDestination = navPath->PathPoints[navPath->PathPoints.Num() - 1];
+			}
+		}
+		this->FollowTime = 0.0;
+		this->bTargeting = false;
+	}
+}
+
+void AAuraController::AbilityInputTagHeld(FGameplayTag InputTag)
+{
+	if (this->bTargeting || !InputTag.MatchesTagExact(FAuraGameplayTags::Get().InputTag_LMB))
+	{
+		if (this->GetASC())
+		{
+			this->GetASC()->AbilityInputTagHeld(InputTag);
+		}
+	}
+	else
+	{
+		this->FollowTime += this->GetWorld()->GetDeltaSeconds();
+		if (this->CursorHit.bBlockingHit)
+		{
+			this->CachedDestination = this->CursorHit.ImpactPoint;
+		}
+		if (APawn* controlledPawn = this->GetPawn())
+		{
+			const FVector worldDirection = (this->CachedDestination - controlledPawn->GetActorLocation()).GetSafeNormal();
+			controlledPawn->AddMovementInput(worldDirection);
+		}
+	}
+}
+
+UAbilitySystemComponentBase* AAuraController::GetASC()
+{
+	if (!this->AuraAbilitySystemComponent)
+	{
+		this->AuraAbilitySystemComponent = Cast<UAbilitySystemComponentBase>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(this->GetPawn<APawn>()));
+
+	}
+	return this->AuraAbilitySystemComponent;
 }

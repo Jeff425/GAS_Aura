@@ -25,4 +25,8 @@ class AURA_API ICombatInterface
 public:
 	
 	virtual int32 GetLevel();
+
+	// This should return the location on the character where projectiles spawn from
+	// CharacterBase.h implements this function
+	virtual FVector GetCombatSocketLocation();
 };
