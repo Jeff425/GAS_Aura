@@ -4,10 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "GameplayEffectTypes.h"
 #include "AuraProjectile.generated.h"
 
 class USphereComponent;
 class UProjectileMovementComponent;
+class UNiagaraSystem;
 
 UCLASS()
 class AURA_API AAuraProjectile : public AActor
@@ -19,8 +21,12 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void Destroyed() override;
 
 public:	
+	UPROPERTY(BlueprintReadWrite, meta = (ExposeOnSpawn = "true"))
+	FGameplayEffectSpecHandle DamageEffectSpecHandle;
+
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USphereComponent> Sphere;
 
@@ -29,4 +35,23 @@ public:
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UProjectileMovementComponent> ProjectileMovement;
+
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UNiagaraSystem> ImpactEffect;
+
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<USoundBase> ImpactSound;
+
+	void PlayImpactSoundAndEffect();
+
+	bool bHit = false;
+
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<USoundBase> LoopingSound;
+
+	UPROPERTY();
+	TObjectPtr<UAudioComponent> LoopingSoundComponent;
+
+	UPROPERTY(EditAnywhere)
+	float Lifespan = 5.0;
 };

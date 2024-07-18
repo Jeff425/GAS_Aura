@@ -3,11 +3,19 @@
 
 #include "Character/CharacterBase.h"
 #include <AbilitySystem/AbilitySystemComponentBase.h>
+#include "Components/CapsuleComponent.h"
+#include <Aura/Aura.h>
 
 
 ACharacterBase::ACharacterBase()
 {
 	this->PrimaryActorTick.bCanEverTick = false;
+	this->GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+	this->GetCapsuleComponent()->SetGenerateOverlapEvents(false);
+	// This assumes that we want to base all our collision on the mesh instead of a simple object
+	this->GetMesh()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+	this->GetMesh()->SetCollisionResponseToChannel(ECC_Projectile, ECR_Overlap);
+	this->GetMesh()->SetGenerateOverlapEvents(true);
 	this->Weapon = CreateDefaultSubobject<USkeletalMeshComponent>("Weapon");
 	this->Weapon->SetupAttachment(GetMesh(), "WeaponHandSocket");
 	this->Weapon->SetCollisionEnabled(ECollisionEnabled::NoCollision);

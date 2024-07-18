@@ -66,6 +66,8 @@ void AAuraController::SetupInputComponent()
 
 	UAuraInputComponent* inputComponent = CastChecked<UAuraInputComponent>(this->InputComponent);
 	inputComponent->BindAction(this->MoveAction, ETriggerEvent::Triggered, this, &AAuraController::Move);
+	inputComponent->BindAction(this->ShiftAction, ETriggerEvent::Started, this, &AAuraController::ShiftPressed);
+	inputComponent->BindAction(this->ShiftAction, ETriggerEvent::Completed, this, &AAuraController::ShiftReleased);
 	inputComponent->BindAbilityActions(this->InputConfig, this, &ThisClass::AbilityInputTagPressed, &ThisClass::AbilityInputTagReleased, &ThisClass::AbilityInputTagHeld);
 }
 
@@ -118,14 +120,8 @@ void AAuraController::AbilityInputTagPressed(FGameplayTag InputTag)
 
 void AAuraController::AbilityInputTagReleased(FGameplayTag InputTag)
 {
-	if (this->bTargeting || !InputTag.MatchesTagExact(FAuraGameplayTags::Get().InputTag_LMB))
-	{
-		if (this->GetASC())
-		{
-			this->GetASC()->AbilityInputTagReleased(InputTag);
-		}
-	}
-	else
+	this->GetASC()->AbilityInputTagReleased(InputTag);
+	if (!this->bTargeting && !this->bShiftKeyDown)
 	{
 		APawn* controlledPawn = this->GetPawn();
 		if (this->FollowTime <= this->ShortPressThreshold && controlledPawn)
@@ -149,7 +145,7 @@ void AAuraController::AbilityInputTagReleased(FGameplayTag InputTag)
 
 void AAuraController::AbilityInputTagHeld(FGameplayTag InputTag)
 {
-	if (this->bTargeting || !InputTag.MatchesTagExact(FAuraGameplayTags::Get().InputTag_LMB))
+	if (this->bShiftKeyDown || this->bTargeting || !InputTag.MatchesTagExact(FAuraGameplayTags::Get().InputTag_LMB))
 	{
 		if (this->GetASC())
 		{

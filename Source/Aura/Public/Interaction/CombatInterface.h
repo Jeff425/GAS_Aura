@@ -8,7 +8,8 @@
 #include "CombatInterface.generated.h"
 
 // This class does not need to be modified.
-UINTERFACE(MinimalAPI)
+// Added BlueprintType so objects can be casted to interface in Blueprints
+UINTERFACE(MinimalAPI, BlueprintType)
 class UCombatInterface : public UInterface
 {
 	GENERATED_BODY()
@@ -29,4 +30,10 @@ public:
 	// This should return the location on the character where projectiles spawn from
 	// CharacterBase.h implements this function
 	virtual FVector GetCombatSocketLocation();
+
+	// BlueprintImplementableEvents do not need to be virtual
+	// Is called when casting an ability at a target, allows for blueprints to pivot to the location
+	// This example uses Motion Warping to pivot to the target
+	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
+	void UpdateFacingTarget(const FVector& Target);
 };
