@@ -14,6 +14,7 @@ struct FInputActionValue;
 class IIHighlightable;
 class UAbilitySystemComponentBase;
 class USplineComponent;
+class UDamageTextComponent;
 
 /**
  * 
@@ -74,4 +75,10 @@ public:
 	TObjectPtr<USplineComponent> Spline;
 
 	FHitResult CursorHit;
+
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UDamageTextComponent> DamageTextComponentClass;
+
+	UFUNCTION(Client, Reliable)
+	void ShowDamageNumber(float DamageAmount, ACharacter* TargetCharacter);
 };

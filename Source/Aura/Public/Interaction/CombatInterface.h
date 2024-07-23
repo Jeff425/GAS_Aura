@@ -4,8 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
-
 #include "CombatInterface.generated.h"
+
+class UAnimMontage;
 
 // This class does not need to be modified.
 // Added BlueprintType so objects can be casted to interface in Blueprints
@@ -31,9 +32,15 @@ public:
 	// CharacterBase.h implements this function
 	virtual FVector GetCombatSocketLocation();
 
+	// By making NativeEvent, it will create a virtual function GetHitReactMontage_Implementable for C++, but blueprints can also implement it
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	UAnimMontage* GetHitReactMontage();
+
 	// BlueprintImplementableEvents do not need to be virtual
 	// Is called when casting an ability at a target, allows for blueprints to pivot to the location
 	// This example uses Motion Warping to pivot to the target
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
 	void UpdateFacingTarget(const FVector& Target);
+
+	virtual void Die() = 0;
 };

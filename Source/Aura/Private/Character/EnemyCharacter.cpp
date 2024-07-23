@@ -7,6 +7,8 @@
 #include "AbilitySystem/AuraAttributeSet.h"
 #include "AbilitySystem/AuraAbilitySystemLibrary.h"
 #include "Components/WidgetComponent.h"
+#include "AuraGameplayTags.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 // I did this in BP_EnemyBase
 // But this->GetMesh()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block); Under the constructor can set the collision channel in code
@@ -14,7 +16,10 @@
 void AEnemyCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	this->GetCharacterMovement()->MaxWalkSpeed = this->BaseWalkSpeed;
 	this->InitAbilityActorInfo();
+
+	UAuraAbilitySystemLibrary::GiveStartupAbilities(this, this->AbilitySystemComponent);
 
 	if (UBaseUserWidget* auraUserWidget = Cast<UBaseUserWidget>(this->HealthBar->GetUserWidgetObject()))
 	{
@@ -32,6 +37,9 @@ void AEnemyCharacter::BeginPlay()
 			this->OnMaxHealthChanged.Broadcast(Data.NewValue);
 		}
 	);
+
+	this->AbilitySystemComponent->RegisterGameplayTagEvent(FAuraGameplayTags::Get().Effects_HitReact, EGameplayTagEventType::NewOrRemoved).AddUObject(this, &AEnemyCharacter::HitReactTagChanged);
+
 	this->OnHealthChanged.Broadcast(auraAS->GetHealth());
 	this->OnMaxHealthChanged.Broadcast(auraAS->GetMaxHealth());
 }
@@ -84,4 +92,17 @@ void AEnemyCharacter::InitAbilityActorInfo()
 int32 AEnemyCharacter::GetLevel()
 {
 	return this->Level;
+}
+
+// Registered to NewOrRemoved, so a positive value means it was added, 0 or less means it was removed
+void AEnemyCharacter::HitReactTagChanged(const FGameplayTag CallbackTag, int32 NewCount)
+{
+	this->bHitReacting = NewCount > 0;
+	this->GetCharacterMovement()->MaxWalkSpeed = this->bHitReacting ? 0.0 : this->BaseWalkSpeed;
+}
+
+void AEnemyCharacter::Die()
+{
+	this->SetLifeSpan(this->DeathLifeSpan);
+	Super::Die();
 }

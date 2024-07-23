@@ -11,6 +11,8 @@
 #include <AuraGameplayTags.h>
 #include <NavigationSystem.h>
 #include "NavigationPath.h"
+#include "GameFramework/Character.h"
+#include "UI/Widget/DamageTextComponent.h"
 
 AAuraController::AAuraController()
 {
@@ -175,4 +177,19 @@ UAbilitySystemComponentBase* AAuraController::GetASC()
 
 	}
 	return this->AuraAbilitySystemComponent;
+}
+
+void AAuraController::ShowDamageNumber_Implementation(float DamageAmount, ACharacter* TargetCharacter)
+{
+	// Is valid checks for non-null AND that TargetCharacter is not pending-kill
+	if (IsValid(TargetCharacter) && this->DamageTextComponentClass)
+	{
+		// Spawns new damage text widget and attach to target
+		UDamageTextComponent* damageText = NewObject<UDamageTextComponent>(TargetCharacter, this->DamageTextComponentClass);
+		damageText->RegisterComponent();
+		damageText->AttachToComponent(TargetCharacter->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+		// Attach to make relative to the target, then unattach it so it doesn't follow the target
+		damageText->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+		damageText->SetDamageText(DamageAmount);
+	}
 }

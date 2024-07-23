@@ -69,3 +69,54 @@ void ACharacterBase::AddCharacterAbilities()
 	auraASC->AddCharacterAbilities(this->StartupAbilities);
 }
 
+UAnimMontage* ACharacterBase::GetHitReactMontage_Implementation()
+{
+	return this->HitReactMontage;
+}
+
+void ACharacterBase::Die()
+{
+	// Server side detaches the weapon
+	this->Weapon->DetachFromComponent(FDetachmentTransformRules(EDetachmentRule::KeepWorld, true));
+	// Then calls replicated function
+	this->MulticastHandleDeath();
+}
+
+void ACharacterBase::Dissolve()
+{
+	if (IsValid(this->DissolveMaterialInstance))
+	{
+		UMaterialInstanceDynamic* dynamicMatInst = UMaterialInstanceDynamic::Create(this->DissolveMaterialInstance, this);
+		// Need to set material for each material index. Only 1 for this project
+		this->GetMesh()->SetMaterial(0, dynamicMatInst);
+
+		this->StartDissolveTimeline(dynamicMatInst);
+	}
+	if (IsValid(this->WeaponDissolveMaterialInstance))
+	{
+		UMaterialInstanceDynamic* dynamicMatInst = UMaterialInstanceDynamic::Create(this->WeaponDissolveMaterialInstance, this);
+		// Need to set material for each material index. Only 1 for this project
+		this->Weapon->SetMaterial(0, dynamicMatInst);
+
+		this->StartWeaponDissolveTimeline(dynamicMatInst);
+	}
+}
+
+void ACharacterBase::MulticastHandleDeath_Implementation()
+{
+	// Setup ragdoll
+	this->Weapon->SetSimulatePhysics(true);
+	this->Weapon->SetEnableGravity(true);
+	this->Weapon->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
+
+	this->GetMesh()->SetSimulatePhysics(true);
+	this->GetMesh()->SetEnableGravity(true);
+	this->GetMesh()->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
+	this->GetMesh()->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
+
+	// Capsule should not get in the way anymore
+	this->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	this->Dissolve();
+}
+

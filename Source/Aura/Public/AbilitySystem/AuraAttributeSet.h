@@ -66,6 +66,8 @@ public:
 	virtual void PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data) override;
 
 	FEffectProperties BuildEffectProperties(const FGameplayEffectModCallbackData& Data) const;
+
+	void ShowFloatingText(const FEffectProperties& Props, float Damage) const;
 	
 	TMap<FGameplayTag, FAttributeSignature> TagsToAttributes;
 
@@ -193,4 +195,15 @@ public:
 
 	UFUNCTION()
 	void OnRep_ManaRegen(const FGameplayAttributeData& OldVal) const;
+
+	/*
+	 * Meta Attributes
+	 * These do not get replicated
+	 */
+	// Incoming Damage
+	UPROPERTY(BlueprintReadOnly, Category = "Meta Attributes")
+	FGameplayAttributeData IncomingDamage;
+	ATTRIBUTE_ACCESSORS(UAuraAttributeSet, IncomingDamage);
+
+	// Could we have multiple different types of "Incoming Damage" in order to do resistances/blocks/dodges depending on damage type?
 };

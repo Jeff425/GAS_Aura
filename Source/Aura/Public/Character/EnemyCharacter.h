@@ -52,4 +52,17 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UWidgetComponent> HealthBar;
+
+	void HitReactTagChanged(const FGameplayTag CallbackTag, int32 NewCount);
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat")
+	bool bHitReacting = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat")
+	float BaseWalkSpeed = 250.0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
+	float DeathLifeSpan = 5.0;
+
+	virtual void Die() override;
 };

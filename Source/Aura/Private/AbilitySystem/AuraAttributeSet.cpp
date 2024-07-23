@@ -7,6 +7,9 @@
 #include "GameFramework/Character.h"
 #include <AbilitySystemBlueprintLibrary.h>
 #include <AuraGameplayTags.h>
+#include <Interaction/CombatInterface.h>
+#include <Kismet/GameplayStatics.h>
+#include <Player/AuraController.h>
 
 // Macro to save on some boilerplate and not have to use a function pointer map
 #define BIND_ATTRIBUTE_TO_MAP(primary, secondary) \
@@ -89,6 +92,8 @@ void UAuraAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallba
 	// From source ASC, can fetch AbilityActorInfo to get Avatar, PlayerController Etc.
 	// Look at BuildEffectProperties for an example of different information to fetch
 
+	FEffectProperties props = this->BuildEffectProperties(Data);
+
 	// Correct time to clamp
 	if (Data.EvaluatedData.Attribute == this->GetHealthAttribute())
 	{
@@ -97,6 +102,36 @@ void UAuraAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallba
 	if (Data.EvaluatedData.Attribute == this->GetManaAttribute())
 	{
 		this->SetMana(FMath::Clamp(this->GetMana(), 0.0, this->GetMaxMana()));
+	}
+
+	if (Data.EvaluatedData.Attribute == this->GetIncomingDamageAttribute())
+	{
+		// Capture the data, then zero it out
+		const float localIncomingDamage = this->GetIncomingDamage();
+		this->SetIncomingDamage(0.0);
+		if (localIncomingDamage > 0.0)
+		{
+			const float newHealth = this->GetHealth() - localIncomingDamage;
+			this->SetHealth(FMath::Clamp(newHealth, 0.0, this->GetMaxHealth()));
+
+			const bool bFatal = newHealth <= 0.0;
+			if (!bFatal)
+			{
+				// Trigger all abilities on the target that have this tag
+				FGameplayTagContainer tagContainer;
+				tagContainer.AddTag(FAuraGameplayTags::Get().Effects_HitReact);
+				props.TargetASC->TryActivateAbilitiesByTag(tagContainer);
+			}
+			else
+			{
+				if (ICombatInterface* combatInterface = Cast<ICombatInterface>(props.TargetAvatarActor))
+				{
+					combatInterface->Die();
+				}
+			}
+
+			this->ShowFloatingText(props, localIncomingDamage);
+		}
 	}
 }
 
@@ -136,6 +171,18 @@ FEffectProperties UAuraAttributeSet::BuildEffectProperties(const FGameplayEffect
 		Props.TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Props.TargetAvatarActor);
 	}
 	return Props;
+}
+
+void UAuraAttributeSet::ShowFloatingText(const FEffectProperties& Props, float Damage) const
+{
+	// If damage is not self inflicted, show damage
+	if (Props.SourceCharacter != Props.TargetCharacter)
+	{
+		if (AAuraController* pc = Cast<AAuraController>(UGameplayStatics::GetPlayerController(Props.SourceCharacter, 0)))
+		{
+			pc->ShowDamageNumber(Damage, Props.TargetCharacter);
+		}
+	}
 }
 
 
