@@ -82,3 +82,21 @@ UCharacterClassInfo* UAuraAbilitySystemLibrary::GetCharacterClassInfo(const UObj
 
 	return auraGM->CharacterClassInfo;
 }
+
+bool UAuraAbilitySystemLibrary::IsCriticalHit(const FGameplayEffectContextHandle& EffectContextHandle)
+{
+	if (const FAuraGameplayEffectContext* context = static_cast<const FAuraGameplayEffectContext*>(EffectContextHandle.Get()))
+	{
+		return context->bIsCriticalHit;
+	}
+
+	return false;
+}
+
+void UAuraAbilitySystemLibrary::SetCriticalHit(FGameplayEffectContextHandle& EffectContextHandle, bool bIsCrit)
+{
+	if (FAuraGameplayEffectContext* context = static_cast<FAuraGameplayEffectContext*>(EffectContextHandle.Get()))
+	{
+		context->bIsCriticalHit = bIsCrit;
+	}
+}

@@ -53,7 +53,9 @@ void AAuraProjectile::Destroyed()
 
 void AAuraProjectile::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	this->PlayImpactSoundAndEffect();
+	// So server can skip self damage, but client has no way of knowing??
+	if (this->DamageEffectSpecHandle.Data.IsValid() && this->DamageEffectSpecHandle.Data.Get()->GetContext().GetEffectCauser() == OtherActor) return;
+	if (!this->bHit) this->PlayImpactSoundAndEffect();
 	if (this->HasAuthority())
 	{
 		if (UAbilitySystemComponent* targetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(OtherActor))

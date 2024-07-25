@@ -80,5 +80,5 @@ public:
 	TSubclassOf<UDamageTextComponent> DamageTextComponentClass;
 
 	UFUNCTION(Client, Reliable)
-	void ShowDamageNumber(float DamageAmount, ACharacter* TargetCharacter);
+	void ShowDamageNumber(float DamageAmount, ACharacter* TargetCharacter, bool bCriticalHit);
 };

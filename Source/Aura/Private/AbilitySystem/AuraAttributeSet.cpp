@@ -10,6 +10,7 @@
 #include <Interaction/CombatInterface.h>
 #include <Kismet/GameplayStatics.h>
 #include <Player/AuraController.h>
+#include "AbilitySystem/AuraAbilitySystemLibrary.h"
 
 // Macro to save on some boilerplate and not have to use a function pointer map
 #define BIND_ATTRIBUTE_TO_MAP(primary, secondary) \
@@ -35,6 +36,12 @@ UAuraAttributeSet::UAuraAttributeSet()
 	BIND_ATTRIBUTE_TO_MAP(Secondary, ManaRegen);
 	BIND_ATTRIBUTE_TO_MAP(Secondary, MaxMana);
 	BIND_ATTRIBUTE_TO_MAP(Secondary, MaxHealth);
+
+	BIND_ATTRIBUTE_TO_MAP(Secondary, FireResistance);
+	BIND_ATTRIBUTE_TO_MAP(Secondary, LightningResistance);
+	BIND_ATTRIBUTE_TO_MAP(Secondary, ArcaneResistance);
+	BIND_ATTRIBUTE_TO_MAP(Secondary, PhysicalResistance);
+
 }
 
 void UAuraAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -64,6 +71,11 @@ void UAuraAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	DOREPLIFETIME_CONDITION_NOTIFY(UAuraAttributeSet, CritResistance, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UAuraAttributeSet, HealthRegen, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UAuraAttributeSet, ManaRegen, COND_None, REPNOTIFY_Always);
+
+	DOREPLIFETIME_CONDITION_NOTIFY(UAuraAttributeSet, FireResistance, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UAuraAttributeSet, LightningResistance, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UAuraAttributeSet, ArcaneResistance, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UAuraAttributeSet, PhysicalResistance, COND_None, REPNOTIFY_Always);
 }
 
 // Incorrect time to clamp, clamps querying modifiers or something?
@@ -130,7 +142,7 @@ void UAuraAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallba
 				}
 			}
 
-			this->ShowFloatingText(props, localIncomingDamage);
+			this->ShowFloatingText(props, localIncomingDamage, UAuraAbilitySystemLibrary::IsCriticalHit(props.ContextHandle));
 		}
 	}
 }
@@ -173,18 +185,17 @@ FEffectProperties UAuraAttributeSet::BuildEffectProperties(const FGameplayEffect
 	return Props;
 }
 
-void UAuraAttributeSet::ShowFloatingText(const FEffectProperties& Props, float Damage) const
+void UAuraAttributeSet::ShowFloatingText(const FEffectProperties& Props, float Damage, bool bCriticalHit) const
 {
 	// If damage is not self inflicted, show damage
 	if (Props.SourceCharacter != Props.TargetCharacter)
 	{
-		if (AAuraController* pc = Cast<AAuraController>(UGameplayStatics::GetPlayerController(Props.SourceCharacter, 0)))
+		if (AAuraController* pc = Cast<AAuraController>(Props.SourceController))
 		{
-			pc->ShowDamageNumber(Damage, Props.TargetCharacter);
+			pc->ShowDamageNumber(Damage, Props.TargetCharacter, bCriticalHit);
 		}
 	}
 }
-
 
 void UAuraAttributeSet::OnRep_Health(const FGameplayAttributeData& OldVal) const
 {
@@ -259,4 +270,24 @@ void UAuraAttributeSet::OnRep_HealthRegen(const FGameplayAttributeData& OldVal) 
 void UAuraAttributeSet::OnRep_ManaRegen(const FGameplayAttributeData& OldVal) const
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UAuraAttributeSet, ManaRegen, OldVal);
+}
+
+void UAuraAttributeSet::OnRep_FireResistance(const FGameplayAttributeData& OldVal) const
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UAuraAttributeSet, FireResistance, OldVal);
+}
+
+void UAuraAttributeSet::OnRep_LightningResistance(const FGameplayAttributeData& OldVal) const
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UAuraAttributeSet, ArcaneResistance, OldVal);
+}
+
+void UAuraAttributeSet::OnRep_ArcaneResistance(const FGameplayAttributeData& OldVal) const
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UAuraAttributeSet, LightningResistance, OldVal);
+}
+
+void UAuraAttributeSet::OnRep_PhysicalResistance(const FGameplayAttributeData& OldVal) const
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UAuraAttributeSet, PhysicalResistance, OldVal);
 }

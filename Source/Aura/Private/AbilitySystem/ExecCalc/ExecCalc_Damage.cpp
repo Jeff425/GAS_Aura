@@ -7,6 +7,7 @@
 #include "AuraGameplayTags.h"
 #include "AbilitySystem/Data/CharacterClassInfo.h"
 #include "AbilitySystem/AuraAbilitySystemLibrary.h"
+#include "AbilitySystem/AuraAbilityTypes.h"
 #include <Interaction/CombatInterface.h>
 
 // Private struct that is only used in this cpp file
@@ -18,19 +19,50 @@ struct AuraDamageStatics
 	DECLARE_ATTRIBUTE_CAPTUREDEF(CritDamage);
 	DECLARE_ATTRIBUTE_CAPTUREDEF(CritResistance);
 
+	TMap<FGameplayTag, FGameplayEffectAttributeCaptureDefinition> TagToCaptureDef;
+	DECLARE_ATTRIBUTE_CAPTUREDEF(FireResistance);
+	DECLARE_ATTRIBUTE_CAPTUREDEF(LightningResistance);
+	DECLARE_ATTRIBUTE_CAPTUREDEF(ArcaneResistance);
+	DECLARE_ATTRIBUTE_CAPTUREDEF(PhysicalResistance);
+
 	AuraDamageStatics()
 	{
+		const FAuraGameplayTags gameplayTags = FAuraGameplayTags::Get();
 		DEFINE_ATTRIBUTE_CAPTUREDEF(UAuraAttributeSet, Armor, Target, false);
 		DEFINE_ATTRIBUTE_CAPTUREDEF(UAuraAttributeSet, ArmorPenetration, Source, false);
 		DEFINE_ATTRIBUTE_CAPTUREDEF(UAuraAttributeSet, Crit, Source, false);
 		DEFINE_ATTRIBUTE_CAPTUREDEF(UAuraAttributeSet, CritDamage, Source, false);
 		DEFINE_ATTRIBUTE_CAPTUREDEF(UAuraAttributeSet, CritResistance, Target, false);
+		
+		DEFINE_ATTRIBUTE_CAPTUREDEF(UAuraAttributeSet, FireResistance, Target, false);
+		DEFINE_ATTRIBUTE_CAPTUREDEF(UAuraAttributeSet, LightningResistance, Target, false);
+		DEFINE_ATTRIBUTE_CAPTUREDEF(UAuraAttributeSet, ArcaneResistance, Target, false);
+		DEFINE_ATTRIBUTE_CAPTUREDEF(UAuraAttributeSet, PhysicalResistance, Target, false);
 	}
 };
 
 static const AuraDamageStatics& DamageStatics()
 {
 	static AuraDamageStatics dStatics;
+	// Everytime this function is called, it will attempt to fill out the TagToCaptureDef
+	if (dStatics.TagToCaptureDef.Num() < 1)
+	{
+		const FAuraGameplayTags gameplayTags = FAuraGameplayTags::Get();
+		// Only fill if the tags have been set
+		if (gameplayTags.Attributes_Secondary_Armor.IsValid())
+		{
+			dStatics.TagToCaptureDef.Add(gameplayTags.Attributes_Secondary_Armor, dStatics.ArmorDef);
+			dStatics.TagToCaptureDef.Add(gameplayTags.Attributes_Secondary_ArmorPenetration, dStatics.ArmorPenetrationDef);
+			dStatics.TagToCaptureDef.Add(gameplayTags.Attributes_Secondary_Crit, dStatics.CritDef);
+			dStatics.TagToCaptureDef.Add(gameplayTags.Attributes_Secondary_CritDamage, dStatics.CritDamageDef);
+			dStatics.TagToCaptureDef.Add(gameplayTags.Attributes_Secondary_CritResistance, dStatics.CritResistanceDef);
+
+			dStatics.TagToCaptureDef.Add(gameplayTags.Attributes_Secondary_FireResistance, dStatics.FireResistanceDef);
+			dStatics.TagToCaptureDef.Add(gameplayTags.Attributes_Secondary_LightningResistance, dStatics.LightningResistanceDef);
+			dStatics.TagToCaptureDef.Add(gameplayTags.Attributes_Secondary_ArcaneResistance, dStatics.ArcaneResistanceDef);
+			dStatics.TagToCaptureDef.Add(gameplayTags.Attributes_Secondary_PhysicalResistance, dStatics.PhysicalResistanceDef);
+		}
+	}
 	return dStatics;
 }
 
@@ -41,6 +73,11 @@ UExecCalc_Damage::UExecCalc_Damage()
 	this->RelevantAttributesToCapture.Add(DamageStatics().CritDef);
 	this->RelevantAttributesToCapture.Add(DamageStatics().CritDamageDef);
 	this->RelevantAttributesToCapture.Add(DamageStatics().CritResistanceDef);
+
+	this->RelevantAttributesToCapture.Add(DamageStatics().FireResistanceDef);
+	this->RelevantAttributesToCapture.Add(DamageStatics().LightningResistanceDef);
+	this->RelevantAttributesToCapture.Add(DamageStatics().ArcaneResistanceDef);
+	this->RelevantAttributesToCapture.Add(DamageStatics().PhysicalResistanceDef);
 }
 
 void UExecCalc_Damage::Execute_Implementation(const FGameplayEffectCustomExecutionParameters& ExecutionParams, FGameplayEffectCustomExecutionOutput& OutExecutionOutput) const
@@ -54,6 +91,7 @@ void UExecCalc_Damage::Execute_Implementation(const FGameplayEffectCustomExecuti
 	ICombatInterface* targetCombat = Cast<ICombatInterface>(targetAvatar);
 
 	const FGameplayEffectSpec& spec = ExecutionParams.GetOwningSpec();
+	FGameplayEffectContextHandle contextHandle = spec.GetContext();
 
 	const FGameplayTagContainer* sourceTags = spec.CapturedSourceTags.GetAggregatedTags();
 	const FGameplayTagContainer* targetTags = spec.CapturedTargetTags.GetAggregatedTags();
@@ -63,7 +101,21 @@ void UExecCalc_Damage::Execute_Implementation(const FGameplayEffectCustomExecuti
 	evalParams.TargetTags = targetTags;
 
 	// Get Damage Set by Caller Magnitude
-	float damage = spec.GetSetByCallerMagnitude(FAuraGameplayTags::Get().Damage);
+	float damage = 0.0f; //spec.GetSetByCallerMagnitude(FAuraGameplayTags::Get().Damage);
+	// Fetch all damage tags, besides the parent tag
+	for (const auto& tagPair : FAuraGameplayTags::Get().DamageTypesAndResistances)
+	{
+		checkf(DamageStatics().TagToCaptureDef.Contains(tagPair.Value), TEXT("TagsToCaptureDef does not contain Tag: [%s] in ExecCalc_Damage. TagToCaptureDef has %d elements. First Element is [%s]"), *tagPair.Value.ToString(), DamageStatics().TagToCaptureDef.Num(), *DamageStatics().TagToCaptureDef.begin().Key().ToString());
+		const FGameplayEffectAttributeCaptureDefinition captureDef = DamageStatics().TagToCaptureDef[tagPair.Value];
+		float tagResistance = 0.0f;
+		ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(captureDef, evalParams, tagResistance);
+		tagResistance = FMath::Clamp(tagResistance, 0.0f, 100.0f);
+		float tagDamage = spec.GetSetByCallerMagnitude(tagPair.Key);
+
+		damage += tagDamage * (1.0f - (tagResistance * 0.01));
+	}
+
+
 
 	// Get Blockchance on target, determine if block was successful
 	// If block works, half the damage
@@ -115,6 +167,11 @@ void UExecCalc_Damage::Execute_Implementation(const FGameplayEffectCustomExecuti
 		float bonusDamage = 0.0f;
 		ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(DamageStatics().CritDamageDef, evalParams, bonusDamage);
 		damage += bonusDamage;
+		UAuraAbilitySystemLibrary::SetCriticalHit(contextHandle, true);
+	}
+	else
+	{
+		UAuraAbilitySystemLibrary::SetCriticalHit(contextHandle, false);
 	}
 
 	const FGameplayModifierEvaluatedData evalData(UAuraAttributeSet::GetIncomingDamageAttribute(), EGameplayModOp::Additive, damage);

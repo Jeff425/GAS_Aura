@@ -4,6 +4,12 @@
 #include "AuraGameplayTags.h"
 #include "GameplayTagsManager.h"
 
+// Helper macro to add both a damage type, resistance type, and adds both to the map
+#define DAMAGE_RESISTANCE(DamageType) \
+GameplayTags.Damage_##DamageType = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("Damage." #DamageType), FString(#DamageType "Damage Type")); \
+GameplayTags.Attributes_Secondary_ ##DamageType ## Resistance = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("Attributes.Resistance." #DamageType), FString("Resistance to" #DamageType "damage")); \
+GameplayTags.DamageTypesAndResistances.Add(GameplayTags.Damage_##DamageType, GameplayTags.Attributes_Secondary_ ##DamageType ## Resistance);
+
 // Is this needed to declare a static object??
 FAuraGameplayTags FAuraGameplayTags::GameplayTags;
 
@@ -31,7 +37,14 @@ void FAuraGameplayTags::InitializeNativeGameplayTags()
 	GameplayTags.InputTag_3 = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("InputTag.3"), FString(""));
 	GameplayTags.InputTag_4 = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("InputTag.4"), FString(""));
 
+	// Again, looose tag here?
 	GameplayTags.Damage = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("Damage"), FString(""));
+
+	// Add all damage types and the respective resistances and adds them to the map
+	DAMAGE_RESISTANCE(Fire);
+	DAMAGE_RESISTANCE(Lightning);
+	DAMAGE_RESISTANCE(Arcane);
+	DAMAGE_RESISTANCE(Physical);
 
 	GameplayTags.Effects_HitReact = UGameplayTagsManager::Get().AddNativeGameplayTag(FName("Effects.HitReact"), FString("Tag given to enemies when they have been hit"));
 }

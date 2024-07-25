@@ -10,6 +10,10 @@
  * Singleton containing native Gameplay Tags
  */
 
+#define DAMAGE_AND_RESISTANCE_DEC(DamageType) \
+FGameplayTag Damage_##DamageType; \
+FGameplayTag Attributes_Secondary_ ## DamageType ## Resistance;
+
 struct FAuraGameplayTags
 {
 public:
@@ -38,7 +42,14 @@ public:
 	FGameplayTag InputTag_3;
 	FGameplayTag InputTag_4;
 
+	// Loose tag at this point?
 	FGameplayTag Damage;
+
+	TMap<FGameplayTag, FGameplayTag> DamageTypesAndResistances;
+	DAMAGE_AND_RESISTANCE_DEC(Fire)
+	DAMAGE_AND_RESISTANCE_DEC(Lightning)
+	DAMAGE_AND_RESISTANCE_DEC(Arcane)
+	DAMAGE_AND_RESISTANCE_DEC(Physical)
 
 	FGameplayTag Effects_HitReact;
 
