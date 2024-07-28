@@ -16,6 +16,8 @@ AEffectActor::AEffectActor()
 
 void AEffectActor::ApplyEffectToTarget(AActor* TargetActor, TSubclassOf<UGameplayEffect> GameplayEffectClass)
 {
+	// Check if the target is an enemy AND if the effect should be applied to enemies
+	if (TargetActor->ActorHasTag(FName("Enemy")) && !this->bApplyEffectsToEnemies) return;
 	check(GameplayEffectClass);
 	UAbilitySystemComponent* targetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
 	if (IsValid(targetASC))
@@ -41,11 +43,18 @@ void AEffectActor::ApplyEffectToTarget(AActor* TargetActor, TSubclassOf<UGamepla
 				}
 				break;
 		}
+		// If it is an instant effect AND this is suppose to destroy itself, do so
+		if (this->bDestroyOnEffectApplication && specHandle.Data.Get()->Def.Get()->DurationPolicy != EGameplayEffectDurationType::Infinite)
+		{
+			this->Destroy();
+		}
 	}
 }
 
 void AEffectActor::OnOverlap(AActor* TargetActor)
 {
+	// Check if the target is an enemy AND if the effect should be applied to enemies
+	if (TargetActor->ActorHasTag(FName("Enemy")) && !this->bApplyEffectsToEnemies) return;
 	if (this->InstantEffectApplicationPolicy == EEffectApplicationPolicy::ApplyOnOverlap)
 	{
 		this->ApplyEffectToTarget(TargetActor, this->InstantGameplayEffectClass);
@@ -64,6 +73,8 @@ void AEffectActor::OnOverlap(AActor* TargetActor)
 
 void AEffectActor::OnEndOverlap(AActor* TargetActor)
 {
+	// Check if the target is an enemy AND if the effect should be applied to enemies
+	if (TargetActor->ActorHasTag(FName("Enemy")) && !this->bApplyEffectsToEnemies) return;
 	if (this->InstantEffectApplicationPolicy == EEffectApplicationPolicy::ApplyOnEndOverlap)
 	{
 		this->ApplyEffectToTarget(TargetActor, this->InstantGameplayEffectClass);

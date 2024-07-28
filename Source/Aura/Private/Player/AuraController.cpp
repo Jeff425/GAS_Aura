@@ -135,9 +135,13 @@ void AAuraController::AbilityInputTagReleased(FGameplayTag InputTag)
 				{
 					this->Spline->AddSplinePoint(pointLoc, ESplineCoordinateSpace::World);
 				}
-				this->bAutoRunning = true;
+				
 				// Makes sure destination is a movable locaiton
-				this->CachedDestination = navPath->PathPoints[navPath->PathPoints.Num() - 1];
+				if (navPath->PathPoints.Num() > 0)
+				{
+					this->bAutoRunning = true;
+					this->CachedDestination = navPath->PathPoints[navPath->PathPoints.Num() - 1];
+				}
 			}
 		}
 		this->FollowTime = 0.0;

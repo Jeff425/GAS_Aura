@@ -11,6 +11,8 @@
 
 
 class UWidgetComponent;
+class UBehaviorTree;
+class AAuraAIController;
 /**
  * 
  */
@@ -65,4 +67,12 @@ public:
 	float DeathLifeSpan = 5.0;
 
 	virtual void Die() override;
+
+	UPROPERTY(EditAnywhere, Category = "AI")
+	TObjectPtr<UBehaviorTree> BehaviorTree;
+
+	UPROPERTY()
+	TObjectPtr<AAuraAIController> AuraAIController;
+
+	virtual void PossessedBy(AController* NewController) override;
 };

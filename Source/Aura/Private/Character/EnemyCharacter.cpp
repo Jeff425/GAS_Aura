@@ -9,6 +9,9 @@
 #include "Components/WidgetComponent.h"
 #include "AuraGameplayTags.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "AI/AuraAIController.h"
+#include "BehaviorTree/BlackboardComponent.h"
+#include "BehaviorTree/BehaviorTree.h"
 
 // I did this in BP_EnemyBase
 // But this->GetMesh()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block); Under the constructor can set the collision channel in code
@@ -59,6 +62,12 @@ AEnemyCharacter::AEnemyCharacter()
 
 	this->HealthBar = CreateDefaultSubobject<UWidgetComponent>("HealthBar");
 	this->HealthBar->SetupAttachment(this->GetRootComponent());
+
+	// AI will not snap. Can change rotation speed on the character movement
+	this->bUseControllerRotationPitch = false;
+	this->bUseControllerRotationRoll = false;
+	this->bUseControllerRotationYaw = false;
+	this->GetCharacterMovement()->bUseControllerDesiredRotation = true;
 }
 
 void AEnemyCharacter::Highlight()
@@ -99,10 +108,27 @@ void AEnemyCharacter::HitReactTagChanged(const FGameplayTag CallbackTag, int32 N
 {
 	this->bHitReacting = NewCount > 0;
 	this->GetCharacterMovement()->MaxWalkSpeed = this->bHitReacting ? 0.0 : this->BaseWalkSpeed;
+	// Update the AI Blackboard key
+	this->AuraAIController->GetBlackboardComponent()->SetValueAsBool(FName("HitReacting"), this->bHitReacting);
 }
 
 void AEnemyCharacter::Die()
 {
 	this->SetLifeSpan(this->DeathLifeSpan);
 	Super::Die();
+}
+
+void AEnemyCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+	if (!this->HasAuthority()) return;
+	this->AuraAIController = Cast<AAuraAIController>(NewController);
+
+	this->AuraAIController->GetBlackboardComponent()->InitializeBlackboard(*this->BehaviorTree->BlackboardAsset);
+	this->AuraAIController->RunBehaviorTree(this->BehaviorTree);
+
+	this->AuraAIController->GetBlackboardComponent()->SetValueAsBool(FName("HitReacting"), false);
+
+	// Both Ranger and Elementalist are ranged attackers
+	this->AuraAIController->GetBlackboardComponent()->SetValueAsBool(FName("RangedAttacker"), this->CharacterClass != ECharacterClass::Warrior);
 }
