@@ -4,9 +4,22 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
+#include "GameplayTagContainer.h"
 #include "CombatInterface.generated.h"
 
 class UAnimMontage;
+
+USTRUCT(BlueprintType)
+struct FTaggedMontage
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	UAnimMontage* Montage = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	FGameplayTag MontageTag;
+};
 
 // This class does not need to be modified.
 // Added BlueprintType so objects can be casted to interface in Blueprints
@@ -30,7 +43,8 @@ public:
 
 	// This should return the location on the character where projectiles spawn from
 	// CharacterBase.h implements this function
-	virtual FVector GetCombatSocketLocation();
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+	FVector GetCombatSocketLocation(const FGameplayTag& MontageTag);
 
 	// By making NativeEvent, it will create a virtual function GetHitReactMontage_Implementable for C++, but blueprints can also implement it
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
@@ -43,4 +57,13 @@ public:
 	void UpdateFacingTarget(const FVector& Target);
 
 	virtual void Die() = 0;
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+	bool IsDead() const;
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+	AActor* GetAvatar();
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+	TArray<FTaggedMontage> GetAttackMontages();
 };

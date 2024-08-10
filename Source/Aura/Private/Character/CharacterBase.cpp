@@ -4,6 +4,7 @@
 #include "Character/CharacterBase.h"
 #include <AbilitySystem/AbilitySystemComponentBase.h>
 #include "Components/CapsuleComponent.h"
+#include "AuraGameplayTags.h"
 #include <Aura/Aura.h>
 
 
@@ -32,9 +33,23 @@ UAbilitySystemComponent* ACharacterBase::GetAbilitySystemComponent() const
 	return this->AbilitySystemComponent;
 }
 
-FVector ACharacterBase::GetCombatSocketLocation()
+FVector ACharacterBase::GetCombatSocketLocation_Implementation(const FGameplayTag& MontageTag)
 {
-	return this->Weapon->GetSocketLocation(WeaponTipSocketName);
+	// TODO Return correct socket based on MontageTag
+	const FAuraGameplayTags& gameplayTags = FAuraGameplayTags::Get();
+	if (MontageTag.MatchesTagExact(gameplayTags.Montage_Attack_Weapon) && IsValid(this->Weapon))
+	{
+		return this->Weapon->GetSocketLocation(this->WeaponTipSocketName);
+	}
+	if (MontageTag.MatchesTagExact(gameplayTags.Montage_Attack_LeftHand))
+	{
+		return this->GetMesh()->GetSocketLocation(this->LeftHandSocketName);
+	}
+	if (MontageTag.MatchesTagExact(gameplayTags.Montage_Attack_RightHand))
+	{
+		return this->GetMesh()->GetSocketLocation(this->RightHandSocketName);
+	}
+	return FVector();
 }
 
 void ACharacterBase::InitAbilityActorInfo() {}
@@ -102,6 +117,21 @@ void ACharacterBase::Dissolve()
 	}
 }
 
+bool ACharacterBase::IsDead_Implementation() const
+{
+	return this->bDead;
+}
+
+AActor* ACharacterBase::GetAvatar_Implementation()
+{
+	return this;
+}
+
+TArray<FTaggedMontage> ACharacterBase::GetAttackMontages_Implementation()
+{
+	return this->AttackMontages;
+}
+
 void ACharacterBase::MulticastHandleDeath_Implementation()
 {
 	// Setup ragdoll
@@ -117,6 +147,7 @@ void ACharacterBase::MulticastHandleDeath_Implementation()
 	// Capsule should not get in the way anymore
 	this->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
+	this->bDead = true;
 	this->Dissolve();
 }
 

@@ -8,6 +8,7 @@
 #include <Player/AuraPlayerState.h>
 #include "UI/Controller/BaseWidgetController.h"
 #include <Game/AuraGMBase.h>
+#include "Interaction/CombatInterface.h"
 
 UOverlayWidgetController* UAuraAbilitySystemLibrary::GetOverlayWidgetController(const UObject* WorldContextObject)
 {
@@ -50,7 +51,7 @@ void UAuraAbilitySystemLibrary::InitializeDefaultAttributes(const UObject* World
 
 	AActor* avatarActor = ASC->GetAvatarActor();
 	
-	FCharacterClassDefaultInfo classDefaultInfo = classInfo->GetClassDefaultInfo(ChartacterClass);
+	const FCharacterClassDefaultInfo& classDefaultInfo = classInfo->GetClassDefaultInfo(ChartacterClass);
 	
 	FGameplayEffectContextHandle contextHandle = ASC->MakeEffectContext();
 	contextHandle.AddSourceObject(avatarActor);
@@ -63,7 +64,7 @@ void UAuraAbilitySystemLibrary::InitializeDefaultAttributes(const UObject* World
 	ASC->ApplyGameplayEffectSpecToSelf(*ASC->MakeOutgoingSpec(classInfo->VitalAttributes, Level, contextHandle).Data.Get());
 }
 
-void UAuraAbilitySystemLibrary::GiveStartupAbilities(const UObject* WorldContextObject, UAbilitySystemComponent* ASC)
+void UAuraAbilitySystemLibrary::GiveStartupAbilities(const UObject* WorldContextObject, UAbilitySystemComponent* ASC, ECharacterClass CharacterClass)
 {
 
 	UCharacterClassInfo* classInfo = UAuraAbilitySystemLibrary::GetCharacterClassInfo(WorldContextObject);
@@ -72,6 +73,14 @@ void UAuraAbilitySystemLibrary::GiveStartupAbilities(const UObject* WorldContext
 	{
 		FGameplayAbilitySpec abilitySpec = FGameplayAbilitySpec(abilityClass, 1);
 		ASC->GiveAbility(abilitySpec);
+	}
+	if (ICombatInterface* combatInterface = Cast<ICombatInterface>(ASC->GetAvatarActor())) {
+		const FCharacterClassDefaultInfo& defaultInfo = classInfo->GetClassDefaultInfo(CharacterClass);
+		for (TSubclassOf<UGameplayAbility> abilityClass : defaultInfo.StartingAbilities) {
+
+			FGameplayAbilitySpec abilitySpec = FGameplayAbilitySpec(abilityClass, combatInterface->GetLevel());
+			ASC->GiveAbility(abilitySpec);
+		}
 	}
 }
 
@@ -98,5 +107,31 @@ void UAuraAbilitySystemLibrary::SetCriticalHit(FGameplayEffectContextHandle& Eff
 	if (FAuraGameplayEffectContext* context = static_cast<FAuraGameplayEffectContext*>(EffectContextHandle.Get()))
 	{
 		context->bIsCriticalHit = bIsCrit;
+	}
+}
+
+void UAuraAbilitySystemLibrary::GetLivePlayersWithinRadius(const UObject* WorldContextObject, TArray<AActor*>& OutOverlappingActors, const TArray<AActor*>& ActorsToIgnore, float Radius, const FVector& SphereOrigin)
+{
+	FCollisionQueryParams sphereParams;
+	// Consider setting mobility type
+	sphereParams.AddIgnoredActors(ActorsToIgnore);
+
+	TArray<FOverlapResult> overlaps;
+	if (UWorld* world = WorldContextObject->GetWorld())
+	{
+		world->OverlapMultiByObjectType(overlaps, SphereOrigin, FQuat::Identity, FCollisionObjectQueryParams(FCollisionObjectQueryParams::InitType::AllDynamicObjects), FCollisionShape::MakeSphere(Radius), sphereParams);
+	}
+	for (FOverlapResult& overlapResult : overlaps)
+	{
+		if (AActor* actor = overlapResult.GetActor())
+		{
+			const bool bDoesImplement = actor->Implements<UCombatInterface>();
+			const bool bIsAlive = bDoesImplement && !ICombatInterface::Execute_IsDead(actor);
+			if (bIsAlive)
+			{
+				OutOverlappingActors.AddUnique(actor);
+			}
+		}
+		
 	}
 }

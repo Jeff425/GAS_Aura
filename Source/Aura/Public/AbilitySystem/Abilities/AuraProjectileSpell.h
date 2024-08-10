@@ -26,4 +26,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Projectile")
 	void SpawnProjectile(const FVector& ProjectileTargetLocation);
+
+	UPROPERTY(EditAnywhere)
+	float SpawnPadding = 10.0f;
+
+	UPROPERTY(EditAnywhere)
+	float SpawnDrop = 10.0f;
 };

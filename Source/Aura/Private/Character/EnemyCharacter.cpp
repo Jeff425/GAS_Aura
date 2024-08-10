@@ -22,13 +22,13 @@ void AEnemyCharacter::BeginPlay()
 	this->GetCharacterMovement()->MaxWalkSpeed = this->BaseWalkSpeed;
 	this->InitAbilityActorInfo();
 
-	UAuraAbilitySystemLibrary::GiveStartupAbilities(this, this->AbilitySystemComponent);
+	UAuraAbilitySystemLibrary::GiveStartupAbilities(this, this->AbilitySystemComponent, this->CharacterClass);
 
 	if (UBaseUserWidget* auraUserWidget = Cast<UBaseUserWidget>(this->HealthBar->GetUserWidgetObject()))
 	{
 		auraUserWidget->SetWidgetController(this);
 	}
-
+	
 	UAuraAttributeSet* auraAS = CastChecked<UAuraAttributeSet>(this->AttributeSet);
 	this->AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(auraAS->GetHealthAttribute()).AddLambda(
 		[this](const FOnAttributeChangeData& Data) {
@@ -68,6 +68,8 @@ AEnemyCharacter::AEnemyCharacter()
 	this->bUseControllerRotationRoll = false;
 	this->bUseControllerRotationYaw = false;
 	this->GetCharacterMovement()->bUseControllerDesiredRotation = true;
+
+	this->PrimaryActorTick.bCanEverTick = true;
 }
 
 void AEnemyCharacter::Highlight()
@@ -98,6 +100,17 @@ void AEnemyCharacter::InitAbilityActorInfo()
 	this->InitializeDefaultAttributes();
 }
 
+void AEnemyCharacter::Tick(float DeltaSeconds)
+{
+	UAuraAttributeSet* auraAS = CastChecked<UAuraAttributeSet>(this->AttributeSet);
+	if (auraAS->GetMaxHealth() > 0)
+	{
+		this->PrimaryActorTick.bCanEverTick = false;
+		this->OnHealthChanged.Broadcast(auraAS->GetHealth());
+		this->OnMaxHealthChanged.Broadcast(auraAS->GetMaxHealth());
+	}
+}
+
 int32 AEnemyCharacter::GetLevel()
 {
 	return this->Level;
@@ -109,7 +122,10 @@ void AEnemyCharacter::HitReactTagChanged(const FGameplayTag CallbackTag, int32 N
 	this->bHitReacting = NewCount > 0;
 	this->GetCharacterMovement()->MaxWalkSpeed = this->bHitReacting ? 0.0 : this->BaseWalkSpeed;
 	// Update the AI Blackboard key
-	this->AuraAIController->GetBlackboardComponent()->SetValueAsBool(FName("HitReacting"), this->bHitReacting);
+	if (this->AuraAIController && this->AuraAIController->GetBlackboardComponent())
+	{
+		this->AuraAIController->GetBlackboardComponent()->SetValueAsBool(FName("HitReacting"), this->bHitReacting);
+	}
 }
 
 void AEnemyCharacter::Die()
@@ -131,4 +147,14 @@ void AEnemyCharacter::PossessedBy(AController* NewController)
 
 	// Both Ranger and Elementalist are ranged attackers
 	this->AuraAIController->GetBlackboardComponent()->SetValueAsBool(FName("RangedAttacker"), this->CharacterClass != ECharacterClass::Warrior);
+}
+
+void AEnemyCharacter::SetCombatTarget_Implementation(AActor* InCombatTarget)
+{
+	this->CombatTarget = InCombatTarget;
+}
+
+AActor* AEnemyCharacter::GetCombatTarget_Implementation() const
+{
+	return this->CombatTarget;
 }

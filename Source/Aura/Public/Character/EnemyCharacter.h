@@ -35,6 +35,11 @@ public:
 	virtual void UnHighlight() override;
 
 	virtual void InitAbilityActorInfo() override;
+
+	// Only here for the hacky fix to broadcast MaxHealth repeatedly until it is greater than 0
+	// No idea why that bug happens, but it seems to have to do with secondary attributes being an infinite effect?
+	// Or maybe no one knows why it is happening. Seems like it was introduced in 5.4.2
+	virtual void Tick(float DeltaSeconds) override;
 	
 	// Do not need to replicate as only the server will use the value
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character Class Defaults")
@@ -75,4 +80,10 @@ public:
 	TObjectPtr<AAuraAIController> AuraAIController;
 
 	virtual void PossessedBy(AController* NewController) override;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Combat")
+	TObjectPtr<AActor> CombatTarget;
+
+	virtual void SetCombatTarget_Implementation(AActor* InCombatTarget) override;
+	virtual AActor* GetCombatTarget_Implementation() const override;
 };
